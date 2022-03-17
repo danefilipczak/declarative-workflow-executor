@@ -2,13 +2,14 @@
    (:require [org.httpkit.server :as app-server]
              [ring.util.response :as util.response]
              [ring.util.request :as util.request]
-             [ring.middleware.cors :as cors]
-             [clojure.edn :as edn]))
+             [ought.json :refer [json-string->edn edn->json-string]]
+             [ought.workflow-executor :as workflow-executor]
+             [ring.middleware.cors :as cors]))
 
 (defn ->body [req]
   (-> req 
       util.request/body-string
-      edn/read-string))
+      json-string->edn))
 
 (defn with-headers [res]
   (-> res
@@ -17,7 +18,7 @@
 
 (defn ->response [data]
   (-> data
-      pr-str
+      edn->json-string
       util.response/response
       with-headers))
 
@@ -25,9 +26,11 @@
   (def req req)
   (->
    (case (util.request/path-info req)
-     "/sequence" (->response (->body req))
-     (util.response/not-found "unknown route"))
-   (util.response/header "Access-Control-Allow-Origin" "*")))
+     "/workflow" (-> req 
+                     ->body
+                     workflow-executor/evaluate
+                     ->response)
+     (util.response/not-found "unknown route"))))
 
 (defonce server
   (app-server/run-server #'handler {:port 8011}))
