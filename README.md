@@ -1,4 +1,4 @@
-# ought-takehome
+# Declarative Workflow Executor
 
 Dependencies: clojure client tools, npm
 
