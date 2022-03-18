@@ -7,6 +7,16 @@
    [cljs.core.async :refer [<!]]
    [ought.json :refer [edn->json-string json-string->edn]]))
 
+(def workflow-0 {:entry_point :hello_world
+                 :tasks {:hello_world {:output "hello world!"}}})
+
+(def workflow-1 {:entry_point :hello_name
+                 :tasks {:name {:output "Alan"}
+                         :hello_name {:output "hello ${name}!"}}})
+
+(def workflow-2 {:entry_point :hello_input
+                 :tasks {:hello_input {:output "hello ${input}!"}}}) ;; note: this is assuming a typo in the instructions - the declared output there is "hello ${name}", but I'm assuming the correct output to be "hello ${input}"
+
 (defn post-workflow [workflow]
   (go
     (let [response (<! (http/post "http://localhost:8011/workflow"
@@ -17,25 +27,30 @@
 (defn dispatch-workflow! [app-state workflow]
   (go (swap! app-state assoc :workflow-response (<! (post-workflow workflow)))))
 
-(def workflow-0 {:entry_point :hello_world
-                 :tasks {:hello_world {:output "hello world!"}}})
-
-(def workflow-1 {:entry_point :hello_name
-                 :tasks {:name {:output "Alan"}
-                         :hello_name {:output "hello ${name}!"}}})
-
 (defn app []
   (let [app-state (r/atom {})]
     (fn []
       [:div
-       [:button
-        {:on-click (fn []
-                     (go (<! (dispatch-workflow! app-state workflow-0))))}
-        "Hello World"]
-       [:button
-        {:on-click (fn []
-                     (go (<! (dispatch-workflow! app-state workflow-1))))}
-        "Hello Name"]
+       [:div [:button
+              {:on-click (fn []
+                           (go (<! (dispatch-workflow! app-state workflow-0))))}
+              "Hello World"]]
+       
+       [:div [:button
+              {:on-click (fn []
+                           (go (<! (dispatch-workflow! app-state workflow-1))))}
+              "Hello Name"]]
+       
+       [:div [:input {:type :text
+                      :on-change #(swap! app-state assoc :input (-> % .-target .-value))
+                      :value (:input @app-state)}]
+        [:button
+         {:on-click (fn []
+                      (go (<! (dispatch-workflow! 
+                               app-state 
+                               (assoc workflow-2 :input (:input @app-state))))))}
+         "Hello Input"]]
+       
        [:pre "Result:"]
        (when-let [result (:workflow-response @app-state)]
          [:pre result])])))
