@@ -6,7 +6,7 @@
 
 (defn edn->json-string [edn]
   #?(:clj (json/write-str edn)
-     :cljs (.stringify js/JSON (clj->js edn))))
+     :cljs (.stringify js/JSON (clj->js edn) nil "  ")))
 
 (tests 
  (edn->json-string {:entry_point :hello_world, :tasks {:hello_world {:output "hello world!"}}})

@@ -27,8 +27,9 @@
            evaluated-substitutions)))
 
 (defn evaluate [& [{:keys [entry_point tasks] :as workflow} :as args]]
-  (doseq [[task-key task] tasks]
-         (evaluate-steps (:steps task) workflow))
+  (doall (pmap (fn [[_task-key task]]
+                 (evaluate-steps (:steps task) workflow))
+               tasks))
   (evaluate* workflow (get tasks entry_point)))
 
 ;; TESTING HELPERS
@@ -69,6 +70,18 @@
    val := "output"
    (fuzzy= time 100 15) := true
    )
+ 
+ ;; step 4
+ (let [[val time] (time (evaluate {:entry_point :c
+                                   :tasks {:a {:steps [{:wait 0.2}]
+                                               :output "x"}
+                                           :b {:steps [{:wait 0.2}]
+                                               :output "y"}
+                                           :c {:output "${a}+${b}"}}}))]
+   val := "x+y"
+   (fuzzy= time 200 15) := true
+   )
+ 
  )
 
 
