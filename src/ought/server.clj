@@ -32,5 +32,6 @@
                      ->response)
      (util.response/not-found "unknown route"))))
 
-(defonce server
-  (app-server/run-server #'handler {:port 8011}))
+(defn init [opts]
+  (defonce server
+    (app-server/run-server #'handler {:port 8011})))
