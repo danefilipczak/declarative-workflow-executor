@@ -17,6 +17,10 @@
 (def workflow-2 {:entry_point :hello_input
                  :tasks {:hello_input {:output "hello ${input}!"}}}) ;; note: this is assuming a typo in the instructions - the declared output there is "hello ${name}", but I'm assuming the correct output to be "hello ${input}"
 
+(def workflow-3 {:entry_point :slow_goodbye
+                 :tasks {:slow_goodbye {:steps [{:wait 5}] ;; note: assuming a typo in the instructions, the instructions have slow_hello as the task name
+                                        :output "goodbye!"}}})
+
 (defn post-workflow [workflow]
   (go
     (let [response (<! (http/post "http://localhost:8011/workflow"
@@ -50,6 +54,15 @@
                                app-state 
                                (assoc workflow-2 :input (:input @app-state))))))}
          "Hello Input"]]
+       
+       [:div 
+        [:button
+         {:disabled (-> app-state deref :pending-request?)
+          :on-click (fn []
+                      (swap! app-state assoc :pending-request? true)
+                      (go (<! (dispatch-workflow! app-state workflow-3))
+                          (swap! app-state assoc :pending-request? false)))}
+         "Slow Goodbye"]]
        
        [:pre "Result:"]
        (when-let [result (:workflow-response @app-state)]
